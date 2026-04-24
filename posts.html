@@ -139,6 +139,8 @@
     max-width: 780px;
     margin: 0 auto;
     padding: 2rem 2rem 5rem;
+    background: #0a0e1a;
+    min-height: 100vh;
   }
 
   .article-view.visible {
@@ -326,6 +328,7 @@ async function openArticle(i) {
   articleMeta.textContent = `${post.date} · ${post.tag}`;
   articleBody.innerHTML = '<div class="loading">加载中…</div>';
 
+  document.querySelector('.section-title').style.display = 'none';
   listEl.style.display = 'none';
   articleView.classList.add('visible');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -341,6 +344,7 @@ async function openArticle(i) {
 
 function goBack() {
   articleView.classList.remove('visible');
+  document.querySelector('.section-title').style.display = '';
   listEl.style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
