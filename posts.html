@@ -335,7 +335,8 @@ async function openArticle(i) {
 
   try {
     const res = await fetch(`posts/${post.id}.md`);
-    const md = await res.text();
+    let md = await res.text();
+    md = md.replace(/^---[\s\S]*?\n---\n*/, '');
     articleBody.innerHTML = marked.parse(md);
   } catch (e) {
     articleBody.innerHTML = '<p style="color:#8a5a5a;">文章加载失败，请检查文件是否存在。</p>';
