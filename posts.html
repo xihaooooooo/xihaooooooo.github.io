@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>远山 · 文章</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background: #0a0e1a;
+    color: #d9dce3;
+    line-height: 1.8;
+    padding-top: 3.5rem;
+  }
+
+  /* ─── nav ─── */
+  .nav-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 0.8rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .nav-bar a {
+    color: #6b7f96;
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: color 0.25s;
+  }
+  .nav-bar a:hover { color: #9bb7d4; }
+
+  .nav-bar .site-title {
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    color: #9bb7d4;
+    font-weight: 300;
+    margin-right: auto;
+  }
+
+  /* ─── posts list ─── */
+  .section-title {
+    text-align: center;
+    padding: 4rem 2rem 0;
+  }
+
+  .section-title h2 {
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    color: #9bb7d4;
+  }
+
+  .section-title .line {
+    width: 40px;
+    height: 1px;
+    background: #4a6a8a;
+    margin: 0.8rem auto 2.5rem;
+  }
+
+  #post-list {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 2rem 5rem;
+  }
+
+  .post-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 2rem 2.2rem;
+    margin-bottom: 1.6rem;
+    backdrop-filter: blur(4px);
+    transition: all 0.35s ease;
+    cursor: pointer;
+  }
+
+  .post-card:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(155,183,212,0.2);
+    transform: translateY(-2px);
+  }
+
+  .post-card .meta {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.8rem;
+    color: #6b7f96;
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.05em;
+  }
+
+  .post-card .meta .tag {
+    background: rgba(155,183,212,0.1);
+    color: #9bb7d4;
+    padding: 0.1rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+  }
+
+  .post-card h3 {
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: #e8eef5;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.04em;
+  }
+
+  .post-card p {
+    font-size: 0.92rem;
+    color: #889bb0;
+    line-height: 1.7;
+  }
+
+  .post-card .read-more {
+    display: inline-block;
+    margin-top: 0.8rem;
+    font-size: 0.82rem;
+    color: #9bb7d4;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid transparent;
+    pointer-events: none;
+  }
+
+  /* ─── article view ─── */
+  .article-view {
+    display: none;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 2rem 5rem;
+  }
+
+  .article-view.visible {
+    display: block;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    0%   { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .article-view .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: #6b7f96;
+    cursor: pointer;
+    transition: color 0.25s;
+    margin-bottom: 2rem;
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  .article-view .back-btn:hover { color: #9bb7d4; }
+
+  .article-view .article-title {
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: #f5ede4;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+  }
+
+  .article-view .article-meta {
+    font-size: 0.82rem;
+    color: #6b7f96;
+    margin-bottom: 2.5rem;
+  }
+
+  .article-body { font-size: 1rem; color: #c8d0da; line-height: 1.9; }
+
+  .article-body h1, .article-body h2, .article-body h3 {
+    color: #e8eef5;
+    font-weight: 400;
+    margin: 2rem 0 0.8rem;
+    letter-spacing: 0.04em;
+  }
+  .article-body h1 { font-size: 1.6rem; }
+  .article-body h2 { font-size: 1.35rem; }
+  .article-body h3 { font-size: 1.15rem; }
+  .article-body p { margin-bottom: 1.2rem; }
+  .article-body a { color: #9bb7d4; text-decoration: none; border-bottom: 1px solid rgba(155,183,212,0.3); }
+  .article-body a:hover { border-bottom-color: #9bb7d4; }
+  .article-body blockquote {
+    border-left: 2px solid rgba(155,183,212,0.25);
+    padding-left: 1.2rem;
+    margin: 1.5rem 0;
+    color: #889bb0;
+    font-style: italic;
+  }
+  .article-body code {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 0.88em;
+    background: rgba(255,255,255,0.05);
+    padding: 0.15em 0.5em;
+    border-radius: 4px;
+    color: #c8d0da;
+  }
+  .article-body pre {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+  .article-body pre code { background: none; padding: 0; border-radius: 0; }
+  .article-body img { max-width: 100%; border-radius: 8px; margin: 1.5rem 0; }
+  .article-body hr { border: none; height: 1px; background: rgba(255,255,255,0.06); margin: 2rem 0; }
+  .article-body ul, .article-body ol { margin: 1rem 0; padding-left: 1.5rem; }
+  .article-body li { margin-bottom: 0.4rem; }
+  .article-body table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+  .article-body th, .article-body td { border: 1px solid rgba(255,255,255,0.08); padding: 0.6rem 1rem; text-align: left; }
+  .article-body th { background: rgba(255,255,255,0.04); color: #e8eef5; font-weight: 400; }
+
+  /* ─── loading ─── */
+  .loading {
+    text-align: center;
+    padding: 4rem 0;
+    color: #6b7f96;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* ─── footer ─── */
+  footer {
+    text-align: center;
+    padding: 2.5rem 2rem;
+    font-size: 0.78rem;
+    color: #3e5370;
+    letter-spacing: 0.1em;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  @media (max-width: 600px) {
+    .post-card { padding: 1.5rem; }
+    .article-view .article-title { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== Nav ====== -->
+<nav class="nav-bar">
+  <span class="site-title">远 山</span>
+  <a href="index.html">← 返回首页</a>
+</nav>
+
+<!-- ====== 文章列表 ====== -->
+<div class="section-title">
+  <h2>最近的笔迹</h2>
+  <div class="line"></div>
+</div>
+
+<div id="post-list"></div>
+
+<!-- ====== 文章详情 ====== -->
+<section id="article-view" class="article-view">
+  <button class="back-btn" onclick="goBack()">← 返回列表</button>
+  <h1 class="article-title" id="article-title"></h1>
+  <p class="article-meta" id="article-meta"></p>
+  <div class="article-body" id="article-body"></div>
+</section>
+
+<footer>
+  <p>远 山 · 用光影记录山川</p>
+</footer>
+
+<script>
+const listEl = document.getElementById('post-list');
+const articleView = document.getElementById('article-view');
+const articleTitle = document.getElementById('article-title');
+const articleMeta = document.getElementById('article-meta');
+const articleBody = document.getElementById('article-body');
+
+let posts = [];
+
+async function loadPosts() {
+  listEl.innerHTML = '<div class="loading">加载中…</div>';
+  try {
+    const res = await fetch('posts.json');
+    posts = await res.json();
+    renderList();
+  } catch (e) {
+    listEl.innerHTML = '<div class="loading" style="color:#8a5a5a;">文章列表加载失败</div>';
+  }
+}
+
+function renderList() {
+  listEl.innerHTML = '';
+  posts.forEach((post, i) => {
+    const card = document.createElement('article');
+    card.className = 'post-card';
+    card.innerHTML = `
+      <div class="meta">
+        <span>${post.date}</span>
+        <span class="tag">${post.tag}</span>
+      </div>
+      <h3>${post.title}</h3>
+      <p>${post.summary}</p>
+      <span class="read-more">阅读全文 →</span>
+    `;
+    card.addEventListener('click', () => openArticle(i));
+    listEl.appendChild(card);
+  });
+}
+
+async function openArticle(i) {
+  const post = posts[i];
+  articleTitle.textContent = post.title;
+  articleMeta.textContent = `${post.date} · ${post.tag}`;
+  articleBody.innerHTML = '<div class="loading">加载中…</div>';
+
+  listEl.style.display = 'none';
+  articleView.classList.add('visible');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  try {
+    const res = await fetch(`posts/${post.id}.md`);
+    const md = await res.text();
+    articleBody.innerHTML = marked.parse(md);
+  } catch (e) {
+    articleBody.innerHTML = '<p style="color:#8a5a5a;">文章加载失败，请检查文件是否存在。</p>';
+  }
+}
+
+function goBack() {
+  articleView.classList.remove('visible');
+  listEl.style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+loadPosts();
+</script>
+
+</body>
+</html>
