@@ -16,6 +16,16 @@
     padding-top: 3.5rem;
   }
 
+  /* ─── 背景图 ─── */
+  .bg-img {
+    position: fixed;
+    inset: 0;
+    background: url('beijing.png') center/cover no-repeat;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+  }
+
   /* ─── nav ─── */
   .nav-bar {
     position: fixed;
@@ -342,6 +352,8 @@
 </style>
 </head>
 <body>
+
+<div class="bg-img"></div>
 
 <!-- ====== Nav ====== -->
 <nav class="nav-bar">
