@@ -10,20 +10,13 @@
 
   body {
     font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
-    background: #0a0e1a;
+    background:
+      linear-gradient(rgba(10,14,26,0.65), rgba(10,14,26,0.65)),
+      url('beijing.png') fixed center/cover no-repeat;
+    background-color: #0a0e1a;
     color: #d9dce3;
     line-height: 1.8;
     padding-top: 3.5rem;
-  }
-
-  /* ─── 背景图 ─── */
-  .bg-img {
-    position: fixed;
-    inset: 0;
-    background: url('beijing.png') center/cover no-repeat;
-    opacity: 0.08;
-    pointer-events: none;
-    z-index: 0;
   }
 
   /* ─── nav ─── */
@@ -352,8 +345,6 @@
 </style>
 </head>
 <body>
-
-<div class="bg-img"></div>
 
 <!-- ====== Nav ====== -->
 <nav class="nav-bar">
