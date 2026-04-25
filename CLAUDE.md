@@ -5,11 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build
 
 ```bash
-node build.js          # Scan posts/*.md frontmatter -> posts.json
-powershell -File build.ps1   # Windows equivalent
+node build.js          # Scan posts/*.md -> posts.json
 ```
 
-The build regenerates `posts.json` from all `.md` files in `posts/`. Run after adding/editing a post.
+The build regenerates `posts.json` from all `.md` files in `posts/`. **Frontmatter 是可选的** — 没有 frontmatter 时自动从内容生成标题、日期、摘要。
 
 ## Architecture
 
@@ -24,23 +23,21 @@ Static blog ("远山") — no framework, no bundler. Two pages:
 
 ## Post format
 
-Each post requires YAML frontmatter:
+Frontmatter 是可选的。有则用它，没有则自动生成：
 
 ```markdown
 ---
-title: 文章标题
-date: YYYY-MM-DD
-tag: 单字标签 (e.g. 山, 光, 静, 飞, 夜)
-summary: 列表页显示的摘要文字
+title: 文章标题       ← 可选，默认从正文第一个 # 标题取
+date: YYYY-MM-DD      ← 可选，默认用文件修改日期
+tag: 单字标签         ← 可选，默认空
+summary: 摘要         ← 可选，默认取正文前 100 字
 ---
 
 正文 Markdown 内容...
+
+也可以不写 frontmatter，直接写：
+
+# 文章标题
+
+正文内容...
 ```
-
-Filename becomes the post ID (e.g. `dong-ri-shan-gu.md` → `dong-ri-shan-gu`). Use kebab-case.
-
-## Adding a new post
-
-1. Create `<posts/<path>.md>` with frontmatter (can be in subdirectories)
-2. Run `node build.js` to update `posts.json`
-3. Open `posts.html` in browser to verify
