@@ -112,17 +112,6 @@
   }
 
   /* ─── root section title ─── */
-  .root-heading {
-    text-align: center;
-    padding: 2rem 2rem 0;
-    font-size: 0.85rem;
-    color: #6b7f96;
-    letter-spacing: 0.1em;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    margin-top: 2rem;
-    padding-top: 2rem;
-  }
-
   /* ─── post cards ─── */
   #post-list {
     max-width: 780px;
@@ -419,22 +408,24 @@ async function loadPosts() {
 function renderDirectories() {
   // 按目录分组
   const dirMap = {};
-  const rootPosts = [];
   for (const post of posts) {
     if (post.dir) {
       if (!dirMap[post.dir]) dirMap[post.dir] = [];
       dirMap[post.dir].push(post);
-    } else {
-      rootPosts.push(post);
     }
   }
 
   dirList.innerHTML = '';
-  let hasDir = false;
 
   // 渲染目录卡片
-  for (const [name, items] of Object.entries(dirMap).sort()) {
-    hasDir = true;
+  const dirNames = Object.keys(dirMap).sort();
+  if (dirNames.length === 0) {
+    dirList.innerHTML = '<div class="loading">还没有文章</div>';
+    return;
+  }
+
+  for (const name of dirNames) {
+    const items = dirMap[name];
     const card = document.createElement('div');
     card.className = 'dir-card';
     card.innerHTML = `
@@ -444,24 +435,6 @@ function renderDirectories() {
     `;
     card.addEventListener('click', () => showDirArticles(name));
     dirList.appendChild(card);
-  }
-
-  // 渲染根目录文章
-  if (rootPosts.length > 0) {
-    if (hasDir) {
-      const heading = document.createElement('div');
-      heading.className = 'root-heading';
-      heading.textContent = '其他文章';
-      dirList.appendChild(heading);
-    }
-    rootPosts.forEach((post, i) => {
-      const card = createPostCard(post, () => openArticle(post));
-      dirList.appendChild(card);
-    });
-  }
-
-  if (!hasDir && rootPosts.length === 0) {
-    dirList.innerHTML = '<div class="loading">还没有文章</div>';
   }
 }
 
