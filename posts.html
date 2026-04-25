@@ -48,7 +48,7 @@
     margin-right: auto;
   }
 
-  /* ─── posts list ─── */
+  /* ─── section title ─── */
   .section-title {
     text-align: center;
     padding: 4rem 2rem 0;
@@ -68,10 +68,107 @@
     margin: 0.8rem auto 2.5rem;
   }
 
+  /* ─── directory cards ─── */
+  #directory-list {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 2rem 5rem;
+  }
+
+  .dir-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 1.6rem 2rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.35s ease;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .dir-card:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(155,183,212,0.2);
+    transform: translateY(-2px);
+  }
+
+  .dir-card .dir-icon {
+    font-size: 1.4rem;
+    opacity: 0.6;
+  }
+
+  .dir-card .dir-name {
+    font-size: 1.1rem;
+    color: #e8eef5;
+    letter-spacing: 0.06em;
+  }
+
+  .dir-card .dir-count {
+    font-size: 0.8rem;
+    color: #6b7f96;
+    margin-left: auto;
+  }
+
+  /* ─── root section title ─── */
+  .root-heading {
+    text-align: center;
+    padding: 2rem 2rem 0;
+    font-size: 0.85rem;
+    color: #6b7f96;
+    letter-spacing: 0.1em;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: 2rem;
+    padding-top: 2rem;
+  }
+
+  /* ─── post cards ─── */
   #post-list {
     max-width: 780px;
     margin: 0 auto;
     padding: 0 2rem 5rem;
+  }
+
+  #post-list-page {
+    display: none;
+  }
+
+  #post-list-page.visible {
+    display: block;
+  }
+
+  .list-header {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 2rem 1.5rem;
+  }
+
+  .list-header .back-btn {
+    background: none;
+    border: none;
+    color: #6b7f96;
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.25s;
+  }
+  .list-header .back-btn:hover { color: #9bb7d4; }
+
+  .list-header .dir-title {
+    font-size: 1.3rem;
+    font-weight: 300;
+    color: #e8eef5;
+    letter-spacing: 0.1em;
+    margin-top: 1rem;
+  }
+
+  .list-header .dir-line {
+    width: 30px;
+    height: 1px;
+    background: #4a6a8a;
+    margin-top: 0.6rem;
   }
 
   .post-card {
@@ -263,13 +360,24 @@
   <a href="index.html">← 返回首页</a>
 </nav>
 
-<!-- ====== 文章列表 ====== -->
-<div class="section-title">
-  <h2>最近的笔迹</h2>
-  <div class="line"></div>
-</div>
+<!-- ====== 目录视图 ====== -->
+<section id="directory-view">
+  <div class="section-title">
+    <h2>最近的笔迹</h2>
+    <div class="line"></div>
+  </div>
+  <div id="directory-list"></div>
+</section>
 
-<div id="post-list"></div>
+<!-- ====== 目录内文章列表 ====== -->
+<section id="post-list-page">
+  <div class="list-header">
+    <button class="back-btn" onclick="showDirectories()">← 全部目录</button>
+    <div class="dir-title" id="current-dir-title"></div>
+    <div class="dir-line"></div>
+  </div>
+  <div id="post-list"></div>
+</section>
 
 <!-- ====== 文章详情 ====== -->
 <section id="article-view" class="article-view">
@@ -284,52 +392,129 @@
 </footer>
 
 <script>
+const dirView = document.getElementById('directory-view');
+const dirList = document.getElementById('directory-list');
+const listPage = document.getElementById('post-list-page');
 const listEl = document.getElementById('post-list');
+const dirTitle = document.getElementById('current-dir-title');
 const articleView = document.getElementById('article-view');
 const articleTitle = document.getElementById('article-title');
 const articleMeta = document.getElementById('article-meta');
 const articleBody = document.getElementById('article-body');
 
 let posts = [];
+let currentDir = '';
 
 async function loadPosts() {
-  listEl.innerHTML = '<div class="loading">加载中…</div>';
   try {
     const res = await fetch('posts.json');
     posts = await res.json();
-    renderList();
+    renderDirectories();
   } catch (e) {
-    listEl.innerHTML = '<div class="loading" style="color:#8a5a5a;">文章列表加载失败</div>';
+    dirList.innerHTML = '<div class="loading" style="color:#8a5a5a;">文章列表加载失败</div>';
   }
 }
 
-function renderList() {
-  listEl.innerHTML = '';
-  posts.forEach((post, i) => {
-    const card = document.createElement('article');
-    card.className = 'post-card';
+// ====== 目录视图 ======
+function renderDirectories() {
+  // 按目录分组
+  const dirMap = {};
+  const rootPosts = [];
+  for (const post of posts) {
+    if (post.dir) {
+      if (!dirMap[post.dir]) dirMap[post.dir] = [];
+      dirMap[post.dir].push(post);
+    } else {
+      rootPosts.push(post);
+    }
+  }
+
+  dirList.innerHTML = '';
+  let hasDir = false;
+
+  // 渲染目录卡片
+  for (const [name, items] of Object.entries(dirMap).sort()) {
+    hasDir = true;
+    const card = document.createElement('div');
+    card.className = 'dir-card';
     card.innerHTML = `
-      <div class="meta">
-        <span>${post.date}</span>
-        <span class="tag">${post.tag}</span>
-      </div>
-      <h3>${post.title}</h3>
-      <p>${post.summary}</p>
-      <span class="read-more">阅读全文 →</span>
+      <span class="dir-icon">📁</span>
+      <span class="dir-name">${name}</span>
+      <span class="dir-count">${items.length} 篇</span>
     `;
-    card.addEventListener('click', () => openArticle(i));
-    listEl.appendChild(card);
-  });
+    card.addEventListener('click', () => showDirArticles(name));
+    dirList.appendChild(card);
+  }
+
+  // 渲染根目录文章
+  if (rootPosts.length > 0) {
+    if (hasDir) {
+      const heading = document.createElement('div');
+      heading.className = 'root-heading';
+      heading.textContent = '其他文章';
+      dirList.appendChild(heading);
+    }
+    rootPosts.forEach((post, i) => {
+      const card = createPostCard(post, () => openArticle(post));
+      dirList.appendChild(card);
+    });
+  }
+
+  if (!hasDir && rootPosts.length === 0) {
+    dirList.innerHTML = '<div class="loading">还没有文章</div>';
+  }
 }
 
-async function openArticle(i) {
-  const post = posts[i];
+// ====== 显示某目录下的文章 ======
+function showDirArticles(name) {
+  currentDir = name;
+  const filtered = posts.filter(p => p.dir === name);
+  dirTitle.textContent = name;
+
+  listEl.innerHTML = '';
+  filtered.forEach(post => {
+    const card = createPostCard(post, () => openArticle(post));
+    listEl.appendChild(card);
+  });
+
+  dirView.style.display = 'none';
+  listPage.classList.add('visible');
+  articleView.classList.remove('visible');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ====== 返回目录视图 ======
+function showDirectories() {
+  dirView.style.display = '';
+  listPage.classList.remove('visible');
+  articleView.classList.remove('visible');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ====== 创建文章卡片 ======
+function createPostCard(post, onClick) {
+  const card = document.createElement('article');
+  card.className = 'post-card';
+  card.innerHTML = `
+    <div class="meta">
+      <span>${post.date}</span>
+      <span class="tag">${post.tag}</span>
+    </div>
+    <h3>${post.title}</h3>
+    <p>${post.summary}</p>
+    <span class="read-more">阅读全文 →</span>
+  `;
+  card.addEventListener('click', onClick);
+  return card;
+}
+
+// ====== 打开文章 ======
+async function openArticle(post) {
   articleTitle.textContent = post.title;
   articleMeta.textContent = `${post.date} · ${post.tag}`;
   articleBody.innerHTML = '<div class="loading">加载中…</div>';
 
-  document.querySelector('.section-title').style.display = 'none';
-  listEl.style.display = 'none';
+  listPage.classList.remove('visible');
   articleView.classList.add('visible');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -343,10 +528,10 @@ async function openArticle(i) {
   }
 }
 
+// ====== 从文章返回列表 ======
 function goBack() {
   articleView.classList.remove('visible');
-  document.querySelector('.section-title').style.display = '';
-  listEl.style.display = 'block';
+  listPage.classList.add('visible');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
