@@ -27,6 +27,7 @@ const entries = files.map(file => {
   const content = fs.readFileSync(file, 'utf-8');
   const relative = path.relative(postsDir, file).replace(/\.md$/, '').replace(/\\/g, '/');
   const id = relative;
+  const dir = id.includes('/') ? id.substring(0, id.lastIndexOf('/')) : '';
   const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
 
   let title = id, date = '', tag = '', summary = '';
@@ -44,7 +45,7 @@ const entries = files.map(file => {
     summary = get('summary') || summary;
   }
 
-  return { id, title, date, tag, summary };
+  return { id, dir, title, date, tag, summary };
 });
 
 entries.sort((a, b) => b.date.localeCompare(a.date));
