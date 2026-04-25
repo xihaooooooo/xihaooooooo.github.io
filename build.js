@@ -1,4 +1,4 @@
-// build.js — scan posts/*.md frontmatter, generate posts.json
+// build.js — scan posts/**/*.md frontmatter, generate posts.json
 // Usage: node build.js
 
 const fs = require('fs');
@@ -7,10 +7,26 @@ const path = require('path');
 const postsDir = path.join(__dirname, 'posts');
 const output = path.join(__dirname, 'posts.json');
 
-const files = fs.readdirSync(postsDir).filter(f => f.endsWith('.md'));
+/** 递归查找所有 .md 文件 */
+function findMdFiles(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...findMdFiles(full));
+    } else if (entry.name.endsWith('.md')) {
+      files.push(full);
+    }
+  }
+  return files;
+}
+
+const files = findMdFiles(postsDir);
 const entries = files.map(file => {
-  const content = fs.readFileSync(path.join(postsDir, file), 'utf-8');
-  const id = path.basename(file, '.md');
+  const content = fs.readFileSync(file, 'utf-8');
+  const relative = path.relative(postsDir, file).replace(/\.md$/, '').replace(/\\/g, '/');
+  const id = relative;
   const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
 
   let title = id, date = '', tag = '', summary = '';

@@ -13,7 +13,7 @@ let pending = new Set();
 console.log('📡 正在监听 posts/ 目录，在 Obsidian 保存后自动同步到 GitHub...');
 console.log('   按 Ctrl+C 停止\n');
 
-fs.watch(postsDir, (event, filename) => {
+fs.watch(postsDir, { recursive: true }, (event, filename) => {
   if (!filename || !filename.endsWith('.md')) return;
 
   pending.add(filename);
