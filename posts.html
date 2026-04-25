@@ -90,9 +90,14 @@
   }
 
   .dir-card:hover {
-    background: rgba(10,25,35,0.85);
+    background: rgba(255,255,255,0.06);
     border-color: rgba(155,183,212,0.2);
     transform: translateY(-2px);
+  }
+  .dir-card:hover .dir-name,
+  .dir-card:hover .dir-count,
+  .dir-card:hover .dir-icon {
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
   }
 
   .dir-card .dir-icon {
@@ -172,9 +177,15 @@
   }
 
   .post-card:hover {
-    background: rgba(10,25,35,0.85);
+    background: rgba(255,255,255,0.06);
     border-color: rgba(155,183,212,0.2);
     transform: translateY(-2px);
+  }
+  .post-card:hover h3,
+  .post-card:hover p,
+  .post-card:hover .meta,
+  .post-card:hover .read-more {
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
   }
 
   .post-card .meta {
