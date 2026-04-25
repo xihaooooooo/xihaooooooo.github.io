@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(curl *)",
+      "Bash(node build.js)"
+    ]
+  }
+}
