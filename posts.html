@@ -334,7 +334,7 @@ async function openArticle(i) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   try {
-    const res = await fetch(`posts/${post.id}.md`);
+    const res = await fetch(encodeURI(`posts/${post.id}.md`));
     let md = await res.text();
     md = md.replace(/^---[\s\S]*?\n---\n*/, '');
     articleBody.innerHTML = marked.parse(md);
