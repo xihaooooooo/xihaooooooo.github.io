@@ -19,7 +19,6 @@ Static blog ("远山") — no framework, no bundler. Two pages:
 - **`posts/`** — Markdown articles with YAML frontmatter. Can be organized in subdirectories (e.g. `posts/旅行/`, `posts/随笔/`).
 - **`posts.json`** — Auto-generated index consumed by `posts.html`. Built by `build.js` or `build.ps1`.
 - **`build.js`** / **`build.ps1`** — Recursively scan `posts/`, parse frontmatter (title, date, tag, summary), write sorted `posts.json`.
-- **`autosync.js`** — Background file watcher: detect `.md` changes → auto build → git commit → git push.
 
 ## Post format
 

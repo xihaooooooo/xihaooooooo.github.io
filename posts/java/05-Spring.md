@@ -4,12 +4,62 @@
 
 ## 1. IOC 与 DI
 
-- **IOC（控制反转）**：将对象的创建和管理权交给 Spring 容器。以前你手动 `new XxxService()`，现在 Spring 帮你 new 好了装到容器里，你要用的时候去拿就行。"反转"指的是控制权从你手里转到了容器手里。
-- **DI（依赖注入）**：IOC 的实现方式。容器不光创建对象，还把对象需要的依赖主动塞给它，而不是对象自己去创建依赖。三种注入方式：
-  - **构造器注入**（推荐）：依赖不可变（final 字段），创建完就是完整对象，不存在半成品状态。Spring 官方推荐。
-  - **setter 注入**：可选依赖用 setter，创建后仍可通过 setter 覆盖。灵活性高但对象存在"不完整"窗口期。
-  - **`@Autowired` 注解注入**：反射到字段上，代码最简短，但难以写单元测试（需要反射注入 mock），且掩盖了构造函数参数过多的设计问题。
-- **循环依赖**：A 依赖 B，B 依赖 A。构造器注入的循环依赖无解；setter 注入的单例循环依赖靠三级缓存解决。
+### 1.1 没有 IOC 之前
+
+在没有 IOC 的世界里，每个对象负责创建自己需要的依赖。比如 `UserService` 需要 `UserRepository`：
+
+```java
+public class UserService {
+    private UserRepository repo = new UserRepositoryImpl();
+}
+```
+
+这带来三个问题：一是对象的创建逻辑散落在各个角落，换一个实现要改所有 new 的地方；二是类之间强耦合在具体实现上，单测没法 mock；三是对象生命周期管理混乱——谁负责释放、怎么复用、如何控制数量，全靠开发者自觉。
+
+### 1.2 IOC 解决了什么
+
+**IOC（控制反转）**：将"对象创建和依赖关系管理"的控制权从业务代码手中，反转给 Spring 容器。现在 `UserService` 不需要知道 `UserRepository` 怎么来的：
+
+```java
+public class UserService {
+    private final UserRepository repo;  // 不再 new
+
+    public UserService(UserRepository repo) {  // 容器把依赖送进来
+        this.repo = repo;
+    }
+}
+```
+
+反转的关键是，过去你调用组件时是自己去 new 依赖（主动控制），现在你声明需要什么依赖，容器主动注入给你（被动接收）。控制权从调用方转到了框架方。
+
+### 1.3 DI（依赖注入）—— IOC 的实现方式
+
+IOC 是思想，DI 是落地手段。容器不光创建对象，还在创建过程中把该对象需要的依赖主动塞给它。三种注入方式：
+
+**构造器注入（推荐）**：依赖通过构造函数传入，声明为 final 字段。对象一旦创建完成就是完整可用的，不存在"半成品"状态。当构造参数超过 5 个时，应该拆分类或引入设计模式——构造参数多到写不下，说明类本身的职责太多了。
+
+**setter 注入**：通过 setter 方法注入可选依赖。对象可以先以不完整状态存在，后续通过 setter 覆盖或追加。适合依赖不是必需项的场景（如"有日志框架注入就输出，没有就不输出"），但存在一个窗口期——对象已创建但 setter 还没被调用时，如果被其他线程访问，可能拿到空依赖。
+
+**字段注入（`@Autowired` 在字段上）**：最简洁，但代价最高。一是单元测试必须用反射框架（Mockito 的 `@InjectMocks` 本质上就是反射注入），纯 Java 代码无法 mock；二是隐藏了类的依赖数量——一个类有 10 个 `@Autowired` 字段肉眼难以察觉，但构造参数列表 10 个就非常扎眼；三是不能声明为 final，字段在构造方法执行后、容器注入前为 null，对象生命周期内可以被随时随地修改。
+
+### 1.4 容器如何找到 Bean
+
+Spring 通过两种方式知道"哪些类该被管理"：
+
+**① 直接注册**：在 `@Configuration` 类中用 `@Bean` 方法显式声明。每个 `@Bean` 方法对应一个 Bean，方法名默认就是 Bean 名称。适合需要自定义实例化逻辑的场景（如第三方库对象、连接池配置）。
+
+**② 自动扫描**：`@ComponentScan` 扫描指定包路径下带 `@Component`/`@Service`/`@Repository`/`@Controller` 的类，自动注册到容器中。Spring Boot 默认扫描启动类所在包及其子包。
+
+两种方式的本质一样：最终都是往容器中注册一个 Bean 定义（BeanDefinition），包含类名、作用域、依赖项、初始化/销毁回调等信息。Bean 的实例化可以懒惰（BeanFactory）也可以急切（ApplicationContext）。
+
+### 1.5 IOC 容器体系
+
+Spring 中两个核心容器接口：
+
+- **BeanFactory**：最底层的 Bean 容器，延迟加载——调用 `getBean()` 时才创建实例。适合资源敏感环境（如移动端、小内存设备）。
+- **ApplicationContext**：在 BeanFactory 基础上扩展了 AOP、国际化、事件发布、环境变量等功能。启动时预初始化所有单例 Bean（"启动慢，运行快"），日常开发 99.9% 用的是这个。
+
+从代码角度，IOC 容器的本质是一个巨大的 ConcurrentHashMap —— key 是 Bean 名称（`userService`），value 是该名称下所有作用域中单例的那个实例。当你 `getBean("userService")` 时，它从这个 Map 中取。它和普通 Map 的区别在于它还管理了 Bean 的生命周期、作用域和依赖关系。
 
 ---
 
@@ -23,6 +73,34 @@
 → 容器中就绪
 → @PreDestroy → DisposableBean#destroy → 自定义 destroy-method → 销毁
 ```
+
+### 阶段拆解
+
+**① 实例化**：Spring 调用 Bean 的构造方法创建对象实例。此时对象还是个空壳——所有字段都是默认值（null、0、false）。如果使用构造器注入，构造方法的参数此时已经被容器解析好并传入（因为 Spring 先完成了依赖 Bean 的创建才调构造器）。
+
+**② 属性赋值**：`@Autowired`、`@Value` 等注解标注的字段和 setter 方法被 Spring 反射调用，注入依赖。注意字段注入的时机就在此处——对象已经存在了，但属性还是 null，Spring 在此刻把值塞进去。此阶段完成后，所有注入的依赖已经就位。
+
+**③ Aware 回调（感知容器）**：如果 Bean 实现了一系列 Aware 接口，Spring 会依次回调它们。它们的共同目的是**让 Bean 感知到容器本身的存在和它自己的身份**：
+- `BeanNameAware.setBeanName(name)`：知道自己叫什么名字（`userService`）
+- `BeanFactoryAware.setBeanFactory(factory)`：获得创建自己的 BeanFactory 引用
+- `ApplicationContextAware.setApplicationContext(ctx)`：获得更上层的 ApplicationContext
+- 还有 `EnvironmentAware`、`ResourceLoaderAware`、`MessageSourceAware` 等
+
+注：Aware 是一种单向侵入——Bean 代码与 Spring 框架耦合了。绝大多数场景不需要，仅在需要容器级能力（获取所有 Bean、发布事件）且不想注入 ApplicationContext 时使用。
+
+**④ BeanPostProcessor#postProcessBeforeInitialization**：这里是最关键的可扩展点。Spring 在调用每一个 Bean 的初始化方法**之前**，先让所有注册的 `BeanPostProcessor`（BPP）过一遍。BPP 可以返回原始 Bean，也可以返回一个包装后的代理对象。AOP 的 `@Async`、`@Transactional` 等增强都是在这一步或下一步通过 BPP 完成的。
+
+**⑤ 初始化**：三个回调按顺序执行——`@PostConstruct` 最早，`InitializingBean.afterPropertiesSet()` 其次，`init-method`（XML 或 `@Bean(initMethod=...)`）最后。这一阶段的作用是让 Bean 在依赖全部就位后执行自己的启动逻辑（如校验配置、预热缓存、初始化连接等）。三个回调的效果等价，区别在于来源不同：注解来自 JDK（javax → Jakarta）、InitializingBean 来自 Spring 接口、init-method 来自 XML/@Bean 声明。
+
+**⑥ BeanPostProcessor#postProcessAfterInitialization**：BPP 再次执行，这次是初始化**之后**。这里是 Spring AOP 真正生成代理对象的地方——`AnnotationAwareAspectJAutoProxyCreator`（一个 BPP 的子类）在此时检查 Bean 是否需要被切面增强，如果需要就生成 JDK 动态代理或 CGLIB 代理对象替代原始 Bean。这也是为什么你从容器拿到的 Bean 有时候不是你定义的类的实例，而是一个代理对象。
+
+**⑦ 就绪**：Bean 完整就绪，放入一级缓存（singletonObjects），等待被使用。
+
+**⑧ 销毁**：容器关闭时依次回调——`@PreDestroy` → `DisposableBean.destroy()` → `destroy-method`。用于释放连接、关闭线程池、写入缓存等清理工作。注意 prototype 作用域的 Bean 销毁回调**不会被 Spring 调用**——Spring 创建完 prototype Bean 后就彻底"忘记"它了，清理由调用方自己负责。
+
+### 生命周期中最重要的扩展点
+
+`BeanPostProcessor` 是 Spring 留给框架层的核心钩子。Spring 内部大量的功能都是用 BPP 实现的：AOP 的代理创建、`@Autowired` 依赖注入、`@Value` 属性解析、`@Async` 异步包装、`@Transactional` 事务切面。本质上是 Spring 自己吃自己的狗粮——BPP 是暴露给框架开发者用的，普通业务代码几乎不需要直接实现它。
 
 ---
 
@@ -97,17 +175,59 @@
 | 要求 | 必须实现接口 | 不能代理 final 类/方法 |
 | Spring 默认 | 1.x 默认 | 2.0+ 默认（有接口也用 CGLIB） |
 
-**选择逻辑**：Spring 1.x 默认 JDK 动态代理（有接口时），但 JDK 代理只能代理接口方法，局限性很大——如果目标类有不在接口中的 public 方法，这些方法不能被代理增强。Spring Boot 2.x 起统一使用 CGLIB（即使有接口——`spring.aop.proxy-target-class=true` 是默认值），因为 CGLIB 可以拦截所有非 final 的 public 方法。唯一的代价是 CGLIB 不能代理 final 方法和 final 类（final 类不可继承）。
+**JDK 动态代理的底层**：`Proxy.newProxyInstance(classLoader, interfaces, invocationHandler)` 在运行时动态生成一个实现了所有接口的代理类。代理类实现了接口中的所有方法，每个方法的实现就是调用 `InvocationHandler.invoke()`，在这个 invoke 方法里织入增强逻辑，然后通过反射调用目标对象上的同名方法。调用链是：调用方 → 代理.invoke → 增强逻辑 → 反射调用真实目标方法。
 
-**Around Advice 的执行模型**：Around 是功能最强的 Advice，同时包围目标方法的调用。通过 `ProceedingJoinPoint.proceed()` 显式调目标方法——忘记调 `proceed()` 意味着目标方法永远不会执行（也没有结果返回）。Around 的执行顺序：前处理 → proceed() → 目标方法执行 → 后处理。异常在 proceed() 处抛出，可以用 try-catch 包裹。
+**CGLIB 的底层**：CGLIB 使用 ASM 字节码框架在运行时直接生成目标类的一个子类，这个子类覆盖了目标类所有非 final 的 public 方法。每个覆盖的方法在实现中插入增强逻辑，然后通过 `super.xxxMethod()` 调用父类的原始方法。因为 CGLIB 走的是继承，所以 final 方法和 final 类不能被代理。构造方法调用也会触发两次——一次是生成代理对象自己的构造，一次是父类目标对象的初始化。
 
-### 核心概念
+**Spring Boot 2.x 默认选择 CGLIB**：`spring.aop.proxy-target-class=true` 是默认值。CGLIB 可以拦截所有非 final 的 public 方法，不受接口限制。唯一的代价是 final 方法不能被代理。
 
-- **JoinPoint**：连接点（所有可能被增强的方法）。目标类中每个方法都是一个 JoinPoint。
-- **Pointcut**：切入点（实际增强的方法）。通过表达式（`execution(* com.example..*Service.*(..))`）从所有 JoinPoint 中筛选出需要增强的。
-- **Advice**：增强逻辑（Before / After / Around / AfterReturning / AfterThrowing）
-- **Aspect**：切面 = Pointcut + Advice。把它们绑定在一起——"在这些方法上，执行这段逻辑"
-- **Weaving**：织入（编译期 / 类加载期 / 运行期）。Spring 运行期织入（通过代理），AspectJ 可以做编译期和类加载期织入（性能更好但需要额外工具）
+**两者同存时**：如果一个 Bean 同时实现了接口，Spring 可以选 JDK 代理也可以选 CGLIB。容器中拿到代理后，想强转为具体实现类就会失败（JDK 代理根本就不是那个类的子类），强转接口都 OK。所以依赖注入时接受方应该用接口类型而不是具体类类型，这也是为什么 Spring 推荐面向接口编程。
+
+### 五种 Advice 执行顺序
+
+当一个方法被一条切面包含了多个 Advice 时，它们在调用链上的执行顺序是固定的（只讨论同一切面内）：
+
+```
+Around（前） → Before → 目标方法执行 → Around（后） → After → AfterReturning/AfterThrowing
+```
+
+- **@Around**：最强，完全控制目标方法的调用。必须显式调 `ProceedingJoinPoint.proceed()`，可以改入参、改返回值、捕获异常。适合性能统计（记录执行时间）、缓存（命中就不调 proceed）、分布式锁（拿到锁才 proceed）。
+- **@Before**：目标方法执行前触发。不能改入参，不能阻止目标方法执行。适合参数校验、权限检查（通过抛异常阻止）。
+- **@AfterReturning**：目标方法正常返回后才触发（不抛异常）。能拿到返回值但不能改。适合日志、收尾工作。
+- **@AfterThrowing**：目标方法抛异常才触发。可以拿到异常信息。适合错误日志、告警。
+- **@After**：无论正常返回还是异常都触发（类似 finally）。适合释放资源、清理上下文。
+
+### Pointcut 表达式
+
+最常用的三种切入点指示符：
+
+- **`execution`**：最常用。`execution(修饰符 返回值 包.类.方法(参数))`。示例 `execution(* com.example.service.*.*(..))` 表示 service 包下所有类的所有方法。通配符 `*` 匹配一个词，`..` 匹配零到多层包或任意参数。
+- **`@annotation`**：按注解匹配。`@annotation(com.example.Log)` 表示标记了 @Log 注解的所有方法。配合自定义注解非常灵活。
+- **`within`**：按类匹配。`within(com.example.service.*)` 表示 service 包下所有类的所有方法。与 execution 的区别是 within 只看类层级，不关心返回值和方法名。
+
+可以有 `&&`、`||`、`!` 操作符组合多个表达式：`execution(* com.example..*.*(..)) && !execution(* com.example..*.*Test(..))`。
+
+### 多个切面的执行顺序
+
+当两个不同的 Aspect 同时拦截到同一个方法时，它们以"同心圆"的方式嵌套执行：
+
+```
+@Order(1) 的 Around（前） → @Order(2) 的 Around（前） → 目标方法 → @Order(2) 的 Around（后） → @Order(1) 的 Around（后）
+```
+
+通过 `@Order(N)` 或实现 `Ordered` 接口控制优先级。N 越小越靠外（先执行前、后执行后），类似同心圆的洋葱模型。`@Transactional` 用 `@Order` 控制事务在最外层，保证异常 → AOP 处理 → 事务回滚的顺序正确。
+
+### Spring AOP vs AspectJ
+
+| | Spring AOP | AspectJ |
+|---|-----------|---------|
+| 织入时机 | 运行期（通过代理） | 编译期/类加载期（修改字节码） |
+| 代理方式 | JDK 动态代理 / CGLIB | 直接修改 class 字节码 |
+| JoinPoint 范围 | 仅方法执行 | 方法执行 + 构造方法 + 字段访问 + 异常处理 + ... |
+| 性能 | 代理调用有反射/拦截开销 | 编译后与普通调用几乎无差别 |
+| 使用成本 | 零——Spring Boot 原生支持 | 需要额外的 aspectj-maven-plugin 或加载时织入的 -javaagent |
+
+Spring AOP 不是要替代 AspectJ，而是覆盖 95% 的 AOP 场景（且 0 额外成本）。需要对方法以外的点织入、或对性能要求极高时，用 AspectJ。
 
 ### AOP 应用场景
 
@@ -148,6 +268,18 @@
 | MANDATORY | 必须有事务，否则抛异常 |
 | NEVER | 必须无事务，否则抛异常 |
 | NESTED | 嵌套事务（保存点机制，外层回滚影响内层） |
+
+**REQUIRED（默认）**：99% 场景用它。如果当前方法已经在事务中，就加入；如果没有，就创建一个新事务。典型场景：Service 层方法 A（有事务）调用 Service 层方法 B（REQUIRED），B 加入 A 的事务，A 和 B 一起成功一起回滚。这是"整体只允许有一个事务"的语义。
+
+**REQUIRES_NEW**：无论如何都新建一个独立的子事务，当前事务（如果有）被挂起。新事务的提交和回滚完全不依赖外层事务——外层抛异常，内层新事务照样提交；内层抛异常如果没能传播到外层，外层照样提交。典型场景："记录日志"——即使主业务回滚了，日志也要落库保留。
+
+**REQUIRED vs REQUIRES_NEW 的常见坑**：REQUIRES_NEW 看似简单，但"挂起当前事务"意味着数据库连接被占用着等待——如果内层事务执行很久（调外部接口等），连接池可能被撑爆。REQUIRES_NEW 需要独立的数据库连接（或者说两笔事务不能共用一个连接），连接消耗翻倍。
+
+**NESTED（嵌套事务）**：与 REQUIRES_NEW 不同——它不创建完全独立的事务，而是在当前事务内创建一个**保存点（Savepoint）**。内层回滚只回退到保存点（内层的修改撤销），外层的修改不受影响。外层回滚会把整个事务（内层 + 外层）全部回滚。NESTED 和 REQUIRES_NEW 的核心区别：NESTED 内外事务不是独立的（外层回滚内层也死），REQUIRES_NEW 内外事务是完全独立的两笔。注意：NESTED 只在 JDBC 的 Savepoint 机制可用时才生效（JPA/Hibernate 不支持）。
+
+**MANDATORY / NEVER**：防御性注解。MANDATORY 用在"这个方法必须在别人开启的事务中调用，单独调就是 bug"的场景。NEVER 用在"这个方法绝不能被事务包裹，否则会有问题"的场景（如某些数据库 DDL 操作在事务中行为异常）。
+
+**SUPPORTS / NOT_SUPPORTED**：SUPPORTS 适合"可选的"——在事务中就在事务中，不在也无所谓。NOT_SUPPORTED 是"强制的非事务"——如果外层在事务中，先挂起外层事务，当前方法以非事务方式执行。
 
 ---
 
