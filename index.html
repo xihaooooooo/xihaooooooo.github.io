@@ -481,26 +481,158 @@
     .window-dot { width: 18px; }
     .prompt-user { display: inline; }
   }
+
+  /* Full-screen terminal: no desktop chrome */
+  body { background: var(--screen); }
+  .page {
+    width: 100%;
+    min-height: 100svh;
+    padding: 0;
+  }
+  main { width: 100%; height: 100svh; }
+  .terminal {
+    width: 100%;
+    height: 100svh;
+    min-height: 420px;
+    margin: 0;
+    grid-template-rows: 1fr 46px;
+    border: 0;
+    box-shadow: none;
+  }
+  .terminal-output { padding: 28px 32px 10px; }
+  .terminal-input-row { padding: 8px 32px 10px; }
+  @media (max-width: 720px) {
+    .page { padding: 0; }
+    .terminal {
+      width: 100%;
+      height: 100svh;
+      min-height: 420px;
+      margin: 0;
+      grid-template-rows: 1fr 44px;
+    }
+    .terminal-output { padding: 20px 16px 8px; }
+    .terminal-input-row { padding: 7px 16px 9px; }
+  }
+
+  /* Low-resolution print / terminal text */
+  .terminal::before {
+    content: "";
+    position: absolute;
+    z-index: 3;
+    inset: 0 0 46px;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 3px,
+      rgba(0, 0, 0, .13) 4px
+    );
+    opacity: .22;
+  }
+  .terminal-output,
+  .terminal-input-row,
+  #command-input {
+    font-family: "Lucida Console", "Courier New", SimSun, monospace;
+    -webkit-font-smoothing: none;
+    font-synthesis: none;
+    font-variant-ligatures: none;
+  }
+  .output-line,
+  .command-item,
+  .post-row,
+  .prompt-user,
+  .prompt-path,
+  .prompt-symbol,
+  #command-input {
+    letter-spacing: .018em;
+    text-shadow:
+      .55px 0 rgba(194, 210, 181, .42),
+      -.4px 0 rgba(73, 91, 68, .5);
+  }
+  .output-line:nth-child(4n + 1) { opacity: .9; transform: translateX(.2px); }
+  .output-line:nth-child(4n + 2) { opacity: .84; }
+  .output-line:nth-child(4n + 3) { text-shadow: .8px 0 rgba(194, 210, 181, .4), -.25px 0 rgba(73, 91, 68, .55); }
+  #command-input::placeholder { text-shadow: .4px 0 rgba(118, 130, 110, .25); }
+
+  .article-reader[hidden] { display: none; }
+  .article-reader {
+    position: absolute;
+    z-index: 6;
+    inset: 0;
+    display: grid;
+    grid-template-rows: 1fr 25px;
+    color: var(--terminal-text);
+    background: var(--screen);
+    font-family: "Lucida Console", "Courier New", SimSun, monospace;
+    -webkit-font-smoothing: none;
+  }
+  .reader-body {
+    overflow-y: auto;
+    padding: 24px 32px 42px;
+    outline: 0;
+    scrollbar-color: #687062 #1a2019;
+  }
+  .reader-body::-webkit-scrollbar { width: 12px; }
+  .reader-body::-webkit-scrollbar-track { background: #1a2019; }
+  .reader-body::-webkit-scrollbar-thumb { background: #687062; border: 2px solid #1a2019; }
+  .reader-line {
+    min-height: 1.5em;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--terminal-text);
+    font-size: 13px;
+    line-height: 1.55;
+    letter-spacing: .018em;
+    text-shadow: .55px 0 rgba(194, 210, 181, .42), -.4px 0 rgba(73, 91, 68, .5);
+  }
+  .reader-line:nth-child(4n + 1) { opacity: .9; }
+  .reader-line:nth-child(4n + 2) { opacity: .84; }
+  .reader-heading {
+    margin: 1.25em 0 .45em;
+    color: #91b487;
+    font-weight: bold;
+  }
+  .reader-heading.level-1 { margin-top: 0; color: #aac59f; font-size: 15px; text-transform: uppercase; }
+  .reader-heading.level-2 { font-size: 14px; }
+  .reader-code { color: #b5bea9; padding-left: 2ch; }
+  .reader-quote { color: var(--terminal-muted); padding-left: 2ch; }
+  .reader-rule { color: #596354; }
+  .reader-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 0 7px;
+    color: #11160f;
+    background: #91a486;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 25px;
+  }
+  .reader-file { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .reader-position { margin-left: auto; white-space: nowrap; }
+  .reader-quit {
+    height: 19px;
+    padding: 0 5px;
+    border: 0;
+    color: #11160f;
+    background: transparent;
+    font: bold 11px "Lucida Console", "Courier New", monospace;
+    cursor: pointer;
+  }
+  .reader-quit:hover, .reader-quit:focus { color: #e8eddf; background: #344331; outline: 0; }
+  @media (max-width: 720px) {
+    .reader-body { padding: 18px 16px 36px; }
+    .reader-line { font-size: 12px; }
+    .reader-status { gap: 6px; font-size: 10px; }
+    .reader-position .reader-keys { display: none; }
+  }
 </style>
 </head>
 <body>
   <div class="page">
-    <header class="site-head">
-      <nav class="desktop-menu" aria-label="桌面菜单">
-        <span class="panel-logo">ZX</span>
-        <button type="button">Applications</button>
-        <button type="button">Places</button>
-        <button type="button">System</button>
-      </nav>
-      <div class="head-status"><span class="status-dot" aria-hidden="true"></span><span>online</span></div>
-    </header>
     <main>
       <section class="terminal" aria-label="交互式个人终端" id="terminal">
-        <div class="terminal-bar">
-          <div class="terminal-app"><span class="terminal-icon">$_</span><span>Terminal</span></div>
-          <div class="terminal-title">guest@zxh: /home/guest</div>
-          <div class="window-controls" aria-hidden="true"><span class="window-dot">_</span><span class="window-dot">□</span><span class="window-dot">×</span></div>
-        </div>
         <div class="terminal-output" id="terminal-output" role="log" aria-live="polite">
           <div class="output-block boot-block">
             <div class="output-line boot-info">Linux zxh.local 2.4.18-14 #1 i686 GNU/Linux</div>
@@ -515,19 +647,27 @@
           <input id="command-input" name="command" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a command…" autofocus>
           <span class="enter-key" aria-hidden="true">ENTER ↵</span>
         </form>
+        <section class="article-reader" id="article-reader" aria-label="文章阅读器" hidden>
+          <div class="reader-body" id="reader-body" tabindex="0"></div>
+          <div class="reader-status">
+            <span class="reader-file" id="reader-file"></span>
+            <span class="reader-position"><span class="reader-keys">↑↓ PgUp PgDn · </span><span id="reader-percent">0%</span></span>
+            <button class="reader-quit" id="reader-quit" type="button">q:quit</button>
+          </div>
+        </section>
       </section>
     </main>
-    <footer class="site-foot">
-      <button class="start-button" type="button"><span class="start-glyph">X</span>Menu</button>
-      <div class="task-button"><span class="terminal-icon">$_</span>Terminal</div>
-      <time class="panel-clock" id="panel-clock"></time>
-    </footer>
   </div>
 <script>
   const output = document.getElementById('terminal-output');
   const input = document.getElementById('command-input');
   const form = document.getElementById('command-form');
   const terminal = document.getElementById('terminal');
+  const articleReader = document.getElementById('article-reader');
+  const readerBody = document.getElementById('reader-body');
+  const readerFile = document.getElementById('reader-file');
+  const readerPercent = document.getElementById('reader-percent');
+  const readerQuit = document.getElementById('reader-quit');
   const history = [];
   let historyIndex = 0;
   const commandNames = ['help', 'about', 'posts', 'ls', 'open', 'whoami', 'pwd', 'date', 'history', 'echo', 'clear'];
@@ -559,7 +699,7 @@
     const intro = createLine('可用命令', 'muted');
     const grid = document.createElement('div');
     grid.className = 'command-grid';
-    [['about', '关于我'], ['posts', '最近文章'], ['ls', '文章目录'], ['open blog', '进入博客'], ['whoami', '当前访客'], ['date', '本地时间'], ['history', '命令记录'], ['clear', '清空屏幕']].forEach(([name, description]) => {
+    [['about', '关于我'], ['posts', '最近文章'], ['ls', '文章目录'], ['open <path>', '打开文章'], ['open blog', '文章列表'], ['whoami', '当前访客'], ['date', '本地时间'], ['history', '命令记录'], ['clear', '清空屏幕']].forEach(([name, description]) => {
       const item = document.createElement('div');
       item.className = 'command-item';
       const command = document.createElement('span');
@@ -571,14 +711,54 @@
       item.append(command, desc);
       grid.appendChild(item);
     });
-    addBlock(intro, grid);
+    addBlock(intro, grid, createLine('例：open java/01-java-基础.md', 'muted'));
+  };
+  const fallbackPostIds = [
+    'agent问题/未命名',
+    'book_exam/出题模块',
+    'book_exam/判题模块',
+    'book_exam/我做项目遇到的问题',
+    'book_exam/学生画像模块',
+    'book_exam/学生画像模块2',
+    'java/01-java-基础',
+    'java/02-集合框架',
+    'java/03-并发编程',
+    'java/04-JVM',
+    'java/05-Spring',
+    'java/06-MySQL',
+    'java/07-Redis',
+    'java/08-计算机网络',
+    'java/09-操作系统',
+    'java/10-设计模式',
+    'java/java随笔',
+    'onecoupon/one',
+    'onecoupon/同步领卷',
+    'onecoupon/模板创建',
+    '日常面经/3.6',
+    '日常面经/3.7',
+    '日常面经/3.8',
+    '日常面经/9.6',
+    '随笔/再一次见你'
+  ];
+  const fallbackPosts = fallbackPostIds.map(id => ({
+    id,
+    dir: id.slice(0, id.lastIndexOf('/')),
+    title: id.slice(id.lastIndexOf('/') + 1),
+    date: ''
+  }));
+  const loadPosts = async () => {
+    try {
+      const response = await fetch('posts.json');
+      if (!response.ok) throw new Error('request failed');
+      return await response.json();
+    } catch (error) {
+      return fallbackPosts;
+    }
   };
   const showPosts = async () => {
     const block = addBlock(createLine('正在读取 posts/ …', 'muted'));
     try {
-      const response = await fetch('posts.json');
-      if (!response.ok) throw new Error('request failed');
-      const posts = await response.json();
+      const posts = await loadPosts();
       block.replaceChildren(createLine(`最近更新 · ${posts.length} 篇文章`, 'accent'));
       posts.slice(0, 6).forEach(post => {
         const row = document.createElement('div');
@@ -588,11 +768,11 @@
         date.textContent = post.date || '—';
         const title = document.createElement('span');
         title.className = 'post-title';
-        title.textContent = post.title;
+        title.textContent = `${post.id}.md — ${post.title}`;
         row.append(date, title);
         block.appendChild(row);
       });
-      block.appendChild(createLine('输入 open blog 查看全部文章。', 'muted'));
+      block.appendChild(createLine('输入 ls 查看全部路径，使用 open <path> 阅读。', 'muted'));
     } catch (error) {
       block.replaceChildren(createLine('文章索引暂时不可用。', 'error'), createLine('提示：请通过本地服务器或网站地址访问，而不是直接打开 HTML 文件。', 'muted'));
     }
@@ -601,9 +781,7 @@
   const showDirectory = async () => {
     const block = addBlock(createLine('正在读取 posts/ …', 'muted'));
     try {
-      const response = await fetch('posts.json');
-      if (!response.ok) throw new Error('request failed');
-      const posts = await response.json();
+      const posts = await loadPosts();
       const groups = posts.reduce((result, post) => {
         const directory = post.dir || '.';
         if (!result[directory]) result[directory] = [];
@@ -631,6 +809,95 @@
     }
     output.scrollTop = output.scrollHeight;
   };
+  const renderArticle = markdown => {
+    const body = markdown.replace(/^---[\s\S]*?\n---\n*/, '');
+    const fragment = document.createDocumentFragment();
+    let inCode = false;
+
+    body.split(/\r?\n/).forEach(rawLine => {
+      const line = document.createElement('div');
+      line.className = 'reader-line';
+      let text = rawLine;
+
+      if (/^```/.test(text.trim())) {
+        inCode = !inCode;
+        line.classList.add('reader-rule');
+        text = inCode ? `-- code ${text.trim().slice(3) || ''} --` : '-- end --';
+      } else if (inCode) {
+        line.classList.add('reader-code');
+      } else {
+        const heading = text.match(/^(#{1,6})\s+(.+)$/);
+        if (heading) {
+          line.classList.add('reader-heading', `level-${heading[1].length}`);
+          text = heading[2];
+        } else if (/^\s*>/.test(text)) {
+          line.classList.add('reader-quote');
+          text = text.replace(/^\s*>\s?/, '> ');
+        } else if (/^\s*(---+|___+|\*\*\*+)\s*$/.test(text)) {
+          line.classList.add('reader-rule');
+          text = '------------------------------------------------------------';
+        }
+        text = text
+          .replace(/!\[([^\]]*)\]\([^)]+\)/g, '[image: $1]')
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 <$2>')
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/__([^_]+)__/g, '$1')
+          .replace(/`([^`]+)`/g, '$1');
+      }
+
+      line.textContent = text || '\u00a0';
+      fragment.appendChild(line);
+    });
+
+    readerBody.replaceChildren(fragment);
+  };
+  const updateReaderPosition = () => {
+    const scrollable = readerBody.scrollHeight - readerBody.clientHeight;
+    const percent = scrollable <= 0 ? 100 : Math.round((readerBody.scrollTop / scrollable) * 100);
+    readerPercent.textContent = `${Math.max(0, Math.min(100, percent))}%`;
+  };
+  const closeReader = () => {
+    articleReader.hidden = true;
+    readerBody.replaceChildren();
+    input.focus();
+  };
+  const openArticleInTerminal = async post => {
+    try {
+      const response = await fetch(encodeURI(`posts/${post.id}.md`));
+      if (!response.ok) throw new Error('request failed');
+      renderArticle(await response.text());
+      readerFile.textContent = `posts/${post.id}.md`;
+      articleReader.hidden = false;
+      readerBody.scrollTop = 0;
+      updateReaderPosition();
+      readerBody.focus();
+    } catch (error) {
+      addBlock(createLine(`open: 无法读取 posts/${post.id}.md`, 'error'), createLine('请通过个人博客地址或本地服务器访问。', 'muted'));
+    }
+  };
+  const openTarget = async args => {
+    const rawTarget = args.join(' ').trim();
+    if (!rawTarget || ['blog', 'posts', 'posts/'].includes(rawTarget.toLowerCase())) {
+      showPosts();
+      return;
+    }
+
+    const target = rawTarget
+      .replace(/\\/g, '/')
+      .replace(/^\.\//, '')
+      .replace(/^posts\//i, '')
+      .replace(/\.md$/i, '');
+    const posts = await loadPosts();
+    const post = posts.find(item => item.id.toLocaleLowerCase() === target.toLocaleLowerCase());
+
+    if (!post) {
+      addBlock(createLine(`open: 找不到 “${rawTarget}”`, 'error'), createLine('输入 ls 查看可用的文章路径。', 'muted'));
+      return;
+    }
+
+    addBlock(createLine(`正在打开 posts/${post.id}.md …`, 'muted'));
+    openArticleInTerminal(post);
+  };
   const runCommand = rawCommand => {
     const normalized = rawCommand.trim();
     if (!normalized) return;
@@ -646,12 +913,7 @@
         break;
       case 'posts': showPosts(); break;
       case 'ls': showDirectory(); break;
-      case 'open':
-        if (!args.length || ['blog', 'posts', 'posts/'].includes(args[0].toLowerCase())) {
-          addBlock(createLine('正在打开 posts.html …', 'muted'));
-          window.setTimeout(() => { window.location.href = 'posts.html'; }, 380);
-        } else addBlock(createLine(`open: 找不到 “${args.join(' ')}”`, 'error'));
-        break;
+      case 'open': openTarget(args); break;
       case 'whoami': addBlock(createLine('guest — 一位正在探索这里的访客')); break;
       case 'pwd': addBlock(createLine('/home/zxh')); break;
       case 'date': addBlock(createLine(new Intl.DateTimeFormat('zh-CN', { dateStyle: 'full', timeStyle: 'medium' }).format(new Date()))); break;
@@ -666,6 +928,33 @@
     const command = input.value;
     input.value = '';
     runCommand(command);
+  });
+  readerBody.addEventListener('scroll', updateReaderPosition);
+  readerQuit.addEventListener('click', closeReader);
+  readerBody.addEventListener('keydown', event => {
+    const page = Math.max(160, readerBody.clientHeight * .85);
+    if (event.key === 'q' || event.key === 'Q' || event.key === 'Escape') {
+      event.preventDefault();
+      closeReader();
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      readerBody.scrollBy({ top: 32 });
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      readerBody.scrollBy({ top: -32 });
+    } else if (event.key === 'PageDown' || (event.key === ' ' && !event.shiftKey)) {
+      event.preventDefault();
+      readerBody.scrollBy({ top: page });
+    } else if (event.key === 'PageUp' || (event.key === ' ' && event.shiftKey)) {
+      event.preventDefault();
+      readerBody.scrollBy({ top: -page });
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      readerBody.scrollTop = 0;
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      readerBody.scrollTop = readerBody.scrollHeight;
+    }
   });
   input.addEventListener('keydown', event => {
     if (event.key === 'ArrowUp') {
@@ -694,12 +983,6 @@
   document.querySelectorAll('[data-command]').forEach(button => {
     button.addEventListener('click', () => { runCommand(button.dataset.command); input.focus(); });
   });
-  const clock = document.getElementById('panel-clock');
-  const updateClock = () => {
-    clock.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  };
-  updateClock();
-  window.setInterval(updateClock, 30000);
 </script>
 </body>
 </html>

@@ -421,6 +421,7 @@ async function loadPosts() {
     const res = await fetch('posts.json');
     posts = await res.json();
     renderDirectories();
+    routeFromHash();
   } catch (e) {
     dirList.innerHTML = '<div class="loading" style="color:#8a5a5a;">文章列表加载失败</div>';
   }
@@ -504,7 +505,11 @@ function createPostCard(post, onClick) {
 }
 
 // ====== 打开文章 ======
-async function openArticle(post) {
+async function openArticle(post, updateHash = true) {
+  currentDir = post.dir;
+  if (updateHash) {
+    history.pushState(null, '', `#${encodeURIComponent(post.id)}`);
+  }
   articleTitle.textContent = post.title;
   articleMeta.textContent = `${post.date} · ${post.tag}`;
   articleBody.innerHTML = '<div class="loading">加载中…</div>';
@@ -525,10 +530,43 @@ async function openArticle(post) {
 
 // ====== 从文章返回列表 ======
 function goBack() {
-  articleView.classList.remove('visible');
-  listPage.classList.add('visible');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  history.replaceState(null, '', `${location.pathname}${location.search}`);
+  if (currentDir) {
+    showDirArticles(currentDir);
+  } else {
+    showDirectories();
+  }
 }
+
+// ====== 文章直达链接 ======
+function getHashPostId() {
+  if (!location.hash) return '';
+  try {
+    return decodeURIComponent(location.hash.slice(1));
+  } catch (e) {
+    return location.hash.slice(1);
+  }
+}
+
+function routeFromHash() {
+  const id = getHashPostId();
+  if (!id) {
+    if (currentDir) showDirArticles(currentDir);
+    else showDirectories();
+    return;
+  }
+
+  const post = posts.find(item => item.id === id);
+  if (!post) {
+    showDirectories();
+    return;
+  }
+
+  showDirArticles(post.dir);
+  openArticle(post, false);
+}
+
+window.addEventListener('popstate', routeFromHash);
 
 loadPosts();
 </script>
