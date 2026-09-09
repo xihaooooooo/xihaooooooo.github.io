@@ -155,6 +155,16 @@
   .post-row:hover .post-title { color: var(--green); text-decoration: underline; text-underline-offset: 4px; }
   .post-date { color: var(--ink-faint); }
   .post-title { transition: color .18s ease; }
+  .ls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 3px 18px;
+    max-width: min(760px, 100%);
+    margin-top: 3px;
+  }
+  .ls-entry { min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+  .ls-entry.directory { color: var(--green); font-weight: bold; }
+  .ls-entry.file { color: var(--ink-soft); }
   .terminal-input-row {
     position: relative;
     z-index: 2;
@@ -392,6 +402,8 @@
   .command-item { font-size: 13px; }
   .post-row { color: var(--terminal-text); padding: 2px 0; }
   .post-row:hover .post-title { color: var(--terminal-green); text-decoration: underline; }
+  .ls-entry.directory { color: var(--terminal-green); }
+  .ls-entry.file { color: var(--terminal-text); }
   .terminal-input-row {
     min-height: 42px;
     padding: 7px 22px 8px;
@@ -638,11 +650,11 @@
             <div class="output-line boot-info">Linux zxh.local 2.4.18-14 #1 i686 GNU/Linux</div>
             <div class="output-line boot-info">Last login: Tue Sep  9 20:00:01 on tty1</div>
             <div class="output-line boot-welcome">Welcome to zxh.local</div>
-            <div class="output-line">输入 'help' 查看命令，输入 'ls' 浏览 posts/。</div>
+            <div class="output-line">输入 'ls' 查看目录，使用 'cd &lt;dir&gt;' 进入下一级。</div>
           </div>
         </div>
         <form class="terminal-input-row" id="command-form" autocomplete="off">
-          <span class="prompt-user">guest@zxh</span><span class="prompt-path">:~</span><span class="prompt-symbol">$</span>
+          <span class="prompt-user">guest@zxh</span><span class="prompt-path" id="prompt-path">:~/posts</span><span class="prompt-symbol">$</span>
           <label for="command-input" hidden>输入命令</label>
           <input id="command-input" name="command" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a command…" autofocus>
           <span class="enter-key" aria-hidden="true">ENTER ↵</span>
@@ -661,6 +673,7 @@
 <script>
   const output = document.getElementById('terminal-output');
   const input = document.getElementById('command-input');
+  const promptPath = document.getElementById('prompt-path');
   const form = document.getElementById('command-form');
   const terminal = document.getElementById('terminal');
   const articleReader = document.getElementById('article-reader');
@@ -670,7 +683,10 @@
   const readerQuit = document.getElementById('reader-quit');
   const history = [];
   let historyIndex = 0;
-  const commandNames = ['help', 'about', 'posts', 'ls', 'open', 'whoami', 'pwd', 'date', 'history', 'echo', 'clear'];
+  let currentDirectory = '';
+  const commandNames = ['help', 'about', 'posts', 'ls', 'cd', 'open', 'whoami', 'pwd', 'date', 'history', 'echo', 'clear'];
+  const shellPath = () => `~/posts${currentDirectory ? `/${currentDirectory}` : ''}`;
+  const updatePrompt = () => { promptPath.textContent = `:${shellPath()}`; };
   const createLine = (text = '', className = '') => {
     const line = document.createElement('div');
     line.className = `output-line ${className}`.trim();
@@ -688,7 +704,7 @@
   const addPromptLine = command => {
     const line = document.createElement('div');
     line.className = 'output-line command-line';
-    line.append(document.createTextNode('guest@zxh:~$ '));
+    line.append(document.createTextNode(`guest@zxh:${shellPath()}$ `));
     const value = document.createElement('span');
     value.className = 'command-text';
     value.textContent = command;
@@ -699,7 +715,7 @@
     const intro = createLine('可用命令', 'muted');
     const grid = document.createElement('div');
     grid.className = 'command-grid';
-    [['about', '关于我'], ['posts', '最近文章'], ['ls', '文章目录'], ['open <path>', '打开文章'], ['open blog', '文章列表'], ['whoami', '当前访客'], ['date', '本地时间'], ['history', '命令记录'], ['clear', '清空屏幕']].forEach(([name, description]) => {
+    [['about', '关于我'], ['posts', '最近文章'], ['ls', '当前目录'], ['cd <dir>', '进入目录'], ['cd ..', '返回上级'], ['open <file>', '打开文章'], ['whoami', '当前访客'], ['date', '本地时间'], ['history', '命令记录'], ['clear', '清空屏幕']].forEach(([name, description]) => {
       const item = document.createElement('div');
       item.className = 'command-item';
       const command = document.createElement('span');
@@ -711,7 +727,7 @@
       item.append(command, desc);
       grid.appendChild(item);
     });
-    addBlock(intro, grid, createLine('例：open java/01-java-基础.md', 'muted'));
+    addBlock(intro, grid, createLine('例：cd java  →  ls  →  open 01-java-基础.md', 'muted'));
   };
   const fallbackPostIds = [
     'agent问题/未命名',
@@ -778,36 +794,81 @@
     }
     output.scrollTop = output.scrollHeight;
   };
-  const showDirectory = async () => {
-    const block = addBlock(createLine('正在读取 posts/ …', 'muted'));
-    try {
-      const posts = await loadPosts();
-      const groups = posts.reduce((result, post) => {
-        const directory = post.dir || '.';
-        if (!result[directory]) result[directory] = [];
-        result[directory].push(post);
-        return result;
-      }, {});
-      const directories = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'zh-CN'));
-      block.replaceChildren(createLine(`posts/  (${posts.length} files)`, 'accent'));
-      directories.forEach((directory, directoryIndex) => {
-        const isLastDirectory = directoryIndex === directories.length - 1;
-        const directoryBranch = isLastDirectory ? '└──' : '├──';
-        const childPrefix = isLastDirectory ? '    ' : '│   ';
-        block.appendChild(createLine(`${directoryBranch} ${directory}/`, 'accent'));
-        groups[directory]
-          .slice()
-          .sort((a, b) => a.id.localeCompare(b.id, 'zh-CN'))
-          .forEach((post, postIndex, items) => {
-            const fileBranch = postIndex === items.length - 1 ? '└──' : '├──';
-            const fileName = `${post.id.split('/').pop()}.md`;
-            block.appendChild(createLine(`${childPrefix}${fileBranch} ${fileName}`, 'muted'));
-          });
-      });
-    } catch (error) {
-      block.replaceChildren(createLine('无法读取 posts/ 目录。', 'error'), createLine('请通过本地服务器或网站地址访问。', 'muted'));
+  const resolvePath = rawPath => {
+    let value = rawPath.trim().replace(/\\/g, '/').replace(/\/+$/, '');
+    let parts = currentDirectory ? currentDirectory.split('/') : [];
+
+    if (!value || value === '.' || value === '~' || value === '/' || value === 'posts' || value === '~/posts' || value === '/home/zxh/posts') {
+      return value === '.' ? currentDirectory : '';
     }
+
+    const absolutePrefixes = ['~/posts/', '/home/zxh/posts/', 'posts/'];
+    const prefix = absolutePrefixes.find(item => value.startsWith(item));
+    if (prefix) {
+      value = value.slice(prefix.length);
+      parts = [];
+    } else if (value.startsWith('/')) {
+      value = value.slice(1);
+      parts = [];
+    }
+
+    value.split('/').filter(Boolean).forEach(segment => {
+      if (segment === '.') return;
+      if (segment === '..') parts.pop();
+      else parts.push(segment);
+    });
+    return parts.join('/');
+  };
+  const directoryExists = (path, posts) => !path || posts.some(post => post.id.startsWith(`${path}/`));
+  const getDirectoryEntries = (path, posts) => {
+    const prefix = path ? `${path}/` : '';
+    const entries = new Map();
+
+    posts.forEach(post => {
+      if (!post.id.startsWith(prefix)) return;
+      const remainder = post.id.slice(prefix.length);
+      const parts = remainder.split('/');
+      const name = parts[0];
+      const isDirectory = parts.length > 1;
+      if (!entries.has(name) || isDirectory) entries.set(name, { name, isDirectory });
+    });
+
+    return [...entries.values()].sort((a, b) => {
+      if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+      return a.name.localeCompare(b.name, 'zh-CN');
+    });
+  };
+  const showDirectory = async args => {
+    const posts = await loadPosts();
+    const requestedPath = args.length ? resolvePath(args.join(' ')) : currentDirectory;
+    if (!directoryExists(requestedPath, posts)) {
+      addBlock(createLine(`ls: 无法访问 '${args.join(' ')}': 没有那个目录`, 'error'));
+      return;
+    }
+
+    const entries = getDirectoryEntries(requestedPath, posts);
+    const block = addBlock(createLine(`${requestedPath ? `${requestedPath}/` : 'posts/'}`, 'muted'));
+    const grid = document.createElement('div');
+    grid.className = 'ls-grid';
+    entries.forEach(entry => {
+      const item = document.createElement('span');
+      item.className = `ls-entry ${entry.isDirectory ? 'directory' : 'file'}`;
+      item.textContent = `${entry.name}${entry.isDirectory ? '/' : '.md'}`;
+      grid.appendChild(item);
+    });
+    block.appendChild(grid);
     output.scrollTop = output.scrollHeight;
+  };
+  const changeDirectory = async args => {
+    const posts = await loadPosts();
+    const rawTarget = args.join(' ').trim();
+    const nextDirectory = resolvePath(rawTarget || '~');
+    if (!directoryExists(nextDirectory, posts)) {
+      addBlock(createLine(`cd: ${rawTarget}: 没有那个目录`, 'error'));
+      return;
+    }
+    currentDirectory = nextDirectory;
+    updatePrompt();
   };
   const renderArticle = markdown => {
     const body = markdown.replace(/^---[\s\S]*?\n---\n*/, '');
@@ -882,11 +943,7 @@
       return;
     }
 
-    const target = rawTarget
-      .replace(/\\/g, '/')
-      .replace(/^\.\//, '')
-      .replace(/^posts\//i, '')
-      .replace(/\.md$/i, '');
+    const target = resolvePath(rawTarget).replace(/\.md$/i, '');
     const posts = await loadPosts();
     const post = posts.find(item => item.id.toLocaleLowerCase() === target.toLocaleLowerCase());
 
@@ -912,10 +969,11 @@
         addBlock(createLine('朱习浩 (ZXH)', 'accent'), createLine('Java 后端开发。'), createLine('这里放项目笔记、面试记录和随笔。', 'muted'));
         break;
       case 'posts': showPosts(); break;
-      case 'ls': showDirectory(); break;
+      case 'ls': showDirectory(args); break;
+      case 'cd': changeDirectory(args); break;
       case 'open': openTarget(args); break;
       case 'whoami': addBlock(createLine('guest — 一位正在探索这里的访客')); break;
-      case 'pwd': addBlock(createLine('/home/zxh')); break;
+      case 'pwd': addBlock(createLine(`/home/zxh/posts${currentDirectory ? `/${currentDirectory}` : ''}`)); break;
       case 'date': addBlock(createLine(new Intl.DateTimeFormat('zh-CN', { dateStyle: 'full', timeStyle: 'medium' }).format(new Date()))); break;
       case 'history': addBlock(...history.map((item, index) => createLine(`${String(index + 1).padStart(3, ' ')}  ${item}`, 'muted'))); break;
       case 'echo': addBlock(createLine(args.join(' '))); break;
