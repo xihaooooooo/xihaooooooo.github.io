@@ -1,0 +1,2 @@
+为什么这个项目要使用Langgraph呢
+第一点是send扇出+reducer扇入，相当于开了很多子代理
