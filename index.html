@@ -989,7 +989,7 @@
   });
   readerBody.addEventListener('scroll', updateReaderPosition);
   readerQuit.addEventListener('click', closeReader);
-  readerBody.addEventListener('keydown', event => {
+  articleReader.addEventListener('keydown', event => {
     const page = Math.max(160, readerBody.clientHeight * .85);
     if (event.key === 'q' || event.key === 'Q' || event.key === 'Escape') {
       event.preventDefault();
@@ -1037,7 +1037,11 @@
       output.replaceChildren();
     }
   });
-  terminal.addEventListener('click', event => { if (!event.target.closest('button, a')) input.focus(); });
+  terminal.addEventListener('click', event => {
+    if (event.target.closest('button, a')) return;
+    if (!articleReader.hidden) readerBody.focus();
+    else input.focus();
+  });
   document.querySelectorAll('[data-command]').forEach(button => {
     button.addEventListener('click', () => { runCommand(button.dataset.command); input.focus(); });
   });
